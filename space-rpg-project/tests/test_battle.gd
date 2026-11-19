@@ -62,6 +62,9 @@ func test_battle_scene() -> void:
 	expect(scene.grid.cover_at(Vector2i(5, 1)) == 1, "crate gives half cover")
 
 	var unit: Unit = scene.selected
+	var enemy_cell: Vector2i = scene.grid.spawns["E"][0]
+	var blocked := GridPathfinder.reachable(enemy_cell + Vector2i(-2, 0), 6.0, scene._walkable_for_selected)
+	expect(not blocked["costs"].has(enemy_cell), "can't move onto another unit's tile")
 	var start := unit.cell
 	var target := start + Vector2i(0, 3)  # straight down, open floor
 	expect(scene.grid.is_floor(target), "test target is a floor tile")
@@ -76,8 +79,6 @@ func test_battle_scene() -> void:
 	var far: bool = await scene.try_move_to(Vector2i(10, 10))
 	expect(not far, "unit refuses a tile beyond its movement range")
 
-	var enemy_cell: Vector2i = scene.grid.spawns["E"][0]
-	expect(not scene._reach["costs"].has(enemy_cell), "can't move onto another unit's tile")
 
 	scene._select_next()
 	expect(scene.selected != unit and scene.selected.team == "player", "Tab switches to the other player unit")

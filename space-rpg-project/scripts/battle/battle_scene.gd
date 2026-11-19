@@ -1,18 +1,23 @@
 extends Node3D
-## Step 3.2 test battle: select a unit, see where it can go, click to move.
-##   Left click your unit  select it
-##   Tab                   select the next player unit
-##   Hover a blue tile     preview the route
-##   Left click blue tile  move there
-## There are no turns yet, so units can move as often as you like.
+## Test battle: grid movement + turns.
+##   Left click your unit   select it        Tab    next unit with something left to do
+##   Hover a blue tile      preview route    1 / 2  use an action
+##   Left click blue tile   move there       Enter  end turn
+## Each unit gets 1 move + 2 actions per turn. Enemies don't act yet (step 3.5).
+
+const ENEMY_PHASE_TIME := 0.8  # seconds the placeholder enemy turn lasts
 
 @onready var grid: BattleGrid = $BattleGrid
 @onready var camera_rig: CameraRig = $CameraRig
 @onready var units_root: Node3D = $Units
-@onready var info_label: Label = $HUD/Info
+@onready var hud: BattleHUD = $HUD/BattleHUD
 
 var units: Array[Unit] = []
 var selected: Unit = null
+var actions: Array[BattleAction] = ActionLibrary.default_actions()
+var round_number := 1
+var is_player_phase := true
+
 var _reach := {}
 var _hover_cell := Vector2i(-1, -1)
 
@@ -29,10 +34,12 @@ func _ready() -> void:
 	camera_rig.bounds = AABB(Vector3.ZERO, Vector3(grid.width, 0, grid.height))
 	camera_rig.focus_on(grid.center())
 
-	var players := _player_units()
-	if not players.is_empty():
-		select_unit(players[0])
-	_update_info()
+	hud.set_actions(actions)
+	hud.action_pressed.connect(func(a): perform_action(a))
+	hud.end_turn_pressed.connect(func(): end_player_turn())
+
+	hud.log_line("— Round 1: your turn —", "#ffd24d")
+	_select_first_ready()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -40,11 +47,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_hover(_cell_under_mouse(event.position))
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_on_click(_cell_under_mouse(event.position))
-	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_TAB:
-		_select_next()
+	elif event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_TAB:
+				_select_next()
+			KEY_ENTER, KEY_KP_ENTER:
+				end_player_turn()
+			_:
+				var index: int = event.keycode - KEY_1
+				if index >= 0 and index < actions.size():
+					perform_action(actions[index])
 
 
-# --- Actions (public so tests and, later, the turn system can call them) ---
+# --- Actions (public so tests and, later, the AI can call them) ---------------
 
 func select_unit(unit: Unit) -> void:
 	if selected:
@@ -53,21 +68,59 @@ func select_unit(unit: Unit) -> void:
 	if selected:
 		selected.set_selected(true)
 	_refresh_reach()
-	_update_info()
+	_refresh_ui()
 
 
 func try_move_to(cell: Vector2i) -> bool:
-	if selected == null or selected.is_moving or cell == selected.cell:
+	if not _can_command() or not selected.budget.can_move() or cell == selected.cell:
 		return false
 	var path := GridPathfinder.path_to(_reach, cell)
 	if path.is_empty():
 		return false
+	selected.budget.use_move()
 	grid.clear_reachable()
 	grid.clear_path()
+	_refresh_ui()
 	await selected.move_along(path, grid)
-	_refresh_reach()
-	_update_info()
+	_after_unit_acted()
 	return true
+
+
+func perform_action(action: BattleAction) -> bool:
+	if not _can_command():
+		return false
+	var reason := selected.budget.why_not(action)
+	if reason != "":
+		hud.log_line(reason, "#ff8080")
+		return false
+	selected.budget.spend(action)
+	var result: Dictionary = action.effect.call(selected)
+	hud.log_line(result["text"])
+	if result.get("refund", 0) > 0:
+		selected.budget.refund(result["refund"])
+	_after_unit_acted()
+	return true
+
+
+func end_player_turn() -> void:
+	if not is_player_phase:
+		return
+	is_player_phase = false
+	select_unit(null)
+	hud.log_line("— Enemy turn —", "#ff8080")
+	_refresh_ui()
+
+	# Placeholder: enemies just wait. Real AI arrives in step 3.5.
+	await get_tree().create_timer(ENEMY_PHASE_TIME).timeout
+	hud.log_line("Enemies hold their position.")
+
+	round_number += 1
+	for u in units:
+		u.budget.reset()
+		u.set_exhausted(false)
+	is_player_phase = true
+	hud.log_line("— Round %d: your turn —" % round_number, "#ffd24d")
+	_select_first_ready()
 
 
 func unit_at(cell: Vector2i) -> Unit:
@@ -79,14 +132,37 @@ func unit_at(cell: Vector2i) -> Unit:
 
 # --- Internals -------------------------------------------------------------
 
+func _can_command() -> bool:
+	return is_player_phase and selected != null and not selected.is_moving
+
+
+## After any move/action: update visuals, and move on if the unit is done.
+func _after_unit_acted() -> void:
+	if selected == null:
+		return
+	if selected.budget.is_exhausted():
+		selected.set_exhausted(true)
+		if _ready_player_units().is_empty():
+			hud.log_line("All units done.")
+			end_player_turn()
+			return
+		_select_first_ready()
+		return
+	_refresh_reach()
+	_refresh_ui()
+
+
 func _spawn_unit(team: String, cell: Vector2i) -> void:
 	var u := Unit.new()
 	u.team = team
 	u.name = "%s_%d" % [team.capitalize(), units.size() + 1]
+	# Test character numbers. Real characters come from character creation later.
+	u.stats.attributes["WIS"] = 55
+	u.stats.skill_points["Perception"] = 20
 	units_root.add_child(u)
 	u.place_at(cell, grid)
 	if team == "enemy":
-		u.rotation.y = PI  # face the players
+		u.rotation.y = PI
 	units.append(u)
 
 
@@ -98,12 +174,25 @@ func _player_units() -> Array[Unit]:
 	return result
 
 
+func _ready_player_units() -> Array[Unit]:
+	var result: Array[Unit] = []
+	for u in _player_units():
+		if not u.budget.is_exhausted():
+			result.append(u)
+	return result
+
+
+func _select_first_ready() -> void:
+	var ready_units := _ready_player_units()
+	select_unit(ready_units[0] if not ready_units.is_empty() else null)
+
+
 func _select_next() -> void:
-	var players := _player_units()
-	if players.is_empty():
+	var ready_units := _ready_player_units()
+	if ready_units.is_empty() or not is_player_phase:
 		return
-	var i := players.find(selected)
-	select_unit(players[(i + 1) % players.size()])
+	var i := ready_units.find(selected)
+	select_unit(ready_units[(i + 1) % ready_units.size()])
 
 
 func _walkable_for_selected(cell: Vector2i) -> bool:
@@ -115,7 +204,7 @@ func _walkable_for_selected(cell: Vector2i) -> bool:
 
 func _refresh_reach() -> void:
 	grid.clear_path()
-	if selected == null:
+	if selected == null or not selected.budget.can_move() or not is_player_phase:
 		_reach = {}
 		grid.clear_reachable()
 		return
@@ -129,19 +218,22 @@ func _on_hover(cell: Vector2i) -> void:
 	if cell == _hover_cell:
 		return
 	_hover_cell = cell
-	if selected and not selected.is_moving and _reach.get("costs", {}).has(cell) and cell != selected.cell:
+	if _can_command() and _reach.get("costs", {}).has(cell) and cell != selected.cell:
 		grid.show_path(GridPathfinder.path_to(_reach, cell))
 	else:
 		grid.clear_path()
-	_update_info()
+	_refresh_ui()
 
 
 func _on_click(cell: Vector2i) -> void:
-	if selected and selected.is_moving:
+	if not is_player_phase or (selected and selected.is_moving):
 		return
 	var clicked := unit_at(cell)
 	if clicked and clicked.team == "player":
-		select_unit(clicked)
+		if clicked.budget.is_exhausted():
+			hud.log_line("%s has nothing left this turn." % clicked.name, "#999999")
+		else:
+			select_unit(clicked)
 	else:
 		try_move_to(cell)
 
@@ -156,17 +248,16 @@ func _cell_under_mouse(mouse_pos: Vector2) -> Vector2i:
 	return grid.world_to_cell(hit)
 
 
-func _update_info() -> void:
-	var lines := ["Step 3.2: grid + movement   |   WASD pan, wheel zoom, Q/E rotate, Tab next unit"]
-	if selected:
-		var s := "Selected: %s  (move %.0f tiles)" % [selected.name, selected.move_range]
-		if _reach.get("costs", {}).has(_hover_cell) and _hover_cell != selected.cell:
-			s += "   |   route cost %.1f" % _reach["costs"][_hover_cell]
-		lines.append(s)
+func _refresh_ui() -> void:
+	hud.refresh(selected, is_player_phase)
+	var lines := ["Round %d  |  %s" % [round_number, "Your turn" if is_player_phase else "Enemy turn"],
+		"WASD pan, wheel zoom, Q/E rotate, Tab next unit, 1/2 actions, Enter end turn"]
+	if selected and _reach.get("costs", {}).has(_hover_cell) and _hover_cell != selected.cell:
+		lines.append("Route cost %.1f / %.0f" % [_reach["costs"][_hover_cell], selected.move_range])
 	if grid.is_inside(_hover_cell):
 		var cover: String = ["no cover", "half cover", "full cover"][grid.cover_at(_hover_cell)]
 		lines.append("Tile %s: %s" % [_hover_cell, cover])
-	info_label.text = "\n".join(lines)
+	hud.info_label.text = "\n".join(lines)
 
 
 func _setup_environment() -> void:

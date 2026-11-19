@@ -11,10 +11,13 @@ const STEP_TIME := 0.18  # seconds per tile when walking
 @export var move_range := 6.0
 
 var stats := CharacterStats.new()
+var budget := TurnBudget.new()
 var cell := Vector2i.ZERO
 var is_moving := false
 
 var _ring := MeshInstance3D.new()
+var _body_mat: StandardMaterial3D
+var _base_color: Color
 
 
 func _ready() -> void:
@@ -25,7 +28,9 @@ func _ready() -> void:
 	capsule.radius = 0.3
 	capsule.height = 1.6
 	body.mesh = capsule
-	body.material_override = _mat(color)
+	_base_color = color
+	_body_mat = _mat(color)
+	body.material_override = _body_mat
 	body.position.y = 0.8
 	add_child(body)
 
@@ -50,6 +55,12 @@ func _ready() -> void:
 
 func set_selected(selected: bool) -> void:
 	_ring.visible = selected
+
+
+## Grey the unit out when it has nothing left to do this turn.
+func set_exhausted(exhausted: bool) -> void:
+	if _body_mat:
+		_body_mat.albedo_color = _base_color.darkened(0.6) if exhausted else _base_color
 
 
 func place_at(new_cell: Vector2i, grid: BattleGrid) -> void:
