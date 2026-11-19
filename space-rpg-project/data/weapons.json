@@ -1,0 +1,18 @@
+{
+	"_readme": "From 'Fractured Frontier Weapons (d100)'. damage: dice like '2d6+2', or a list of range bands (shotguns). range_m: listed range; up to double is long range (1 penalty die). point_blank: 'bonus' (pistols, SMGs), 'penalty' (rifles, Bulky) or ''. armour: 'normal', 'piercing' (halves armour) or 'ignore' (energy). Edges and most properties are stored but not all work in-game yet.",
+	"Hold-out Pistol":   { "skill": "Firearms", "damage": "1d6", "range_m": 10, "mag": 6, "malf": 97, "properties": ["Light"], "edge": "Vex", "point_blank": "bonus", "armour": "normal" },
+	"Service Revolver":  { "skill": "Firearms", "damage": "1d10", "range_m": 15, "mag": 6, "malf": 100, "properties": [], "edge": "Sap", "point_blank": "bonus", "armour": "normal" },
+	"Pump Shotgun":      { "skill": "Firearms", "damage": [{"max_m": 5, "dice": "3d6"}, {"max_m": 15, "dice": "2d6"}, {"max_m": 30, "dice": "1d6"}], "range_m": 30, "mag": 5, "malf": 99, "properties": ["Two-Handed"], "edge": "Topple", "point_blank": "", "armour": "normal" },
+	"Bolt-Action Rifle": { "skill": "Firearms", "damage": "2d6+2", "range_m": 60, "mag": 5, "malf": 99, "properties": ["Two-Handed"], "edge": "Graze", "point_blank": "penalty", "armour": "normal" },
+	"Auto-Pistol":       { "skill": "Firearms", "damage": "1d8", "range_m": 15, "mag": 12, "malf": 99, "properties": ["Light", "Double Tap"], "edge": "Vex", "point_blank": "bonus", "armour": "normal" },
+	"Submachine Gun":    { "skill": "Firearms", "damage": "1d8", "range_m": 20, "mag": 20, "malf": 98, "properties": ["Light", "Burst"], "edge": "Nick", "point_blank": "bonus", "armour": "normal" },
+	"Assault Rifle":     { "skill": "Firearms", "damage": "2d6", "range_m": 50, "mag": 24, "malf": 99, "properties": ["Two-Handed", "Burst"], "edge": "Vex", "point_blank": "penalty", "armour": "normal" },
+	"Combat Shotgun":    { "skill": "Firearms", "damage": [{"max_m": 5, "dice": "3d6+2"}, {"max_m": 15, "dice": "2d6+1"}, {"max_m": 30, "dice": "1d6"}], "range_m": 30, "mag": 8, "malf": 99, "properties": ["Two-Handed", "Double Tap"], "edge": "Topple", "point_blank": "", "armour": "normal" },
+	"Sniper Rifle":      { "skill": "Firearms", "damage": "2d10+2", "range_m": 150, "mag": 4, "malf": 99, "properties": ["Two-Handed", "Bulky", "Braced"], "edge": "Graze", "point_blank": "penalty", "armour": "piercing" },
+	"Laser Pistol":      { "skill": "Firearms", "damage": "1d8", "range_m": 25, "mag": 10, "malf": 100, "properties": ["Light"], "edge": "Vex", "point_blank": "bonus", "armour": "ignore" },
+	"Ion Carbine":       { "skill": "Firearms", "damage": "1d10", "range_m": 40, "mag": 15, "malf": 100, "properties": ["Two-Handed"], "edge": "Sap", "point_blank": "penalty", "armour": "ignore" },
+	"Plasma Rifle":      { "skill": "Firearms", "damage": "2d8", "range_m": 40, "mag": 6, "malf": 96, "properties": ["Two-Handed", "Bulky", "Overheat"], "edge": "Push", "point_blank": "penalty", "armour": "ignore" },
+	"Light Machine Gun": { "skill": "Heavy Weapons", "damage": "2d8", "range_m": 60, "mag": 50, "malf": 98, "properties": ["Two-Handed", "Braced", "Burst", "Suppressive Fire"], "edge": "Push", "point_blank": "penalty", "armour": "normal" },
+	"Rail Gun":          { "skill": "Heavy Weapons", "damage": "3d8", "range_m": 150, "mag": 2, "malf": 99, "properties": ["Two-Handed", "Braced", "Ignores Cover"], "edge": "Push", "point_blank": "penalty", "armour": "piercing" },
+	"Rad-Slug Rifle":    { "skill": "Firearms", "damage": "2d6", "range_m": 40, "mag": 4, "malf": 95, "properties": ["Two-Handed"], "edge": "Slow", "point_blank": "penalty", "armour": "ignore" }
+}

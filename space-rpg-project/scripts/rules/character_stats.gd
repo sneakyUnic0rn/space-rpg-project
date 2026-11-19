@@ -21,20 +21,37 @@ func get_attribute(attr: String) -> int:
 	return attributes.get(attr, 0)
 
 
+## HP = (CON + STR) / 10, from the core design doc.
+func max_hp() -> int:
+	return (get_attribute("CON") + get_attribute("STR")) / 10
+
+
 ## Final skill value = base (from data/skills.json) + invested points, capped 0..100.
-## `attribute_override` lets a weapon decide the attribute, e.g. a Finesse
-## weapon makes Melee use DEX instead of STR.
+## Base is attribute / 2 for weapon skills and Dodge, attribute / 5 for the rest.
+## If a skill lists several attributes (Melee: STR or DEX), the highest is used.
+## `attribute_override` forces one attribute.
 func get_skill(skill_name: String, attribute_override: String = "") -> int:
 	var def := SkillDB.get_def(skill_name)
 	if def.is_empty():
 		push_warning("Unknown skill: %s" % skill_name)
 		return 0
-	var attr: String = attribute_override if attribute_override != "" else def["attribute"]
-	var base := 0
-	if def["base"] is String and def["base"] == "half_attribute":
-		base = get_attribute(attr) / 2
+	var attr_value := 0
+	if attribute_override != "":
+		attr_value = get_attribute(attribute_override)
+	elif def["attribute"] is Array:
+		for a in def["attribute"]:
+			attr_value = maxi(attr_value, get_attribute(a))
 	else:
-		base = int(def["base"])
+		attr_value = get_attribute(def["attribute"])
+
+	var base := 0
+	match def["base"]:
+		"half", "half_attribute":
+			base = attr_value / 2
+		"fifth":
+			base = attr_value / 5
+		_:
+			base = int(def["base"])
 	return clampi(base + skill_points.get(skill_name, 0), 0, 100)
 
 

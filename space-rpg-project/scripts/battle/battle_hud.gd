@@ -32,7 +32,7 @@ func _ready() -> void:
 	log_panel.offset_left = -380
 	log_panel.offset_top = 12
 	log_panel.offset_right = -12
-	log_panel.offset_bottom = -110
+	log_panel.offset_bottom = -116
 	log_panel.add_theme_stylebox_override("panel", _panel_style(0.7))
 	log_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(log_panel)
@@ -44,7 +44,7 @@ func _ready() -> void:
 	# Bottom: action bar
 	var bar := PanelContainer.new()
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bar.offset_top = -92
+	bar.offset_top = -100
 	bar.offset_left = 12
 	bar.offset_right = -12
 	bar.offset_bottom = -12
@@ -56,13 +56,13 @@ func _ready() -> void:
 	bar.add_child(row)
 
 	var unit_box := VBoxContainer.new()
-	unit_box.custom_minimum_size.x = 260
-	_unit_label.add_theme_font_size_override("font_size", 18)
+	unit_box.custom_minimum_size.x = 280
+	_unit_label.add_theme_font_size_override("font_size", 16)
 	unit_box.add_child(_unit_label)
 	_budget_label.bbcode_enabled = true
 	_budget_label.fit_content = true
 	_budget_label.scroll_active = false
-	_budget_label.custom_minimum_size = Vector2(260, 24)
+	_budget_label.custom_minimum_size = Vector2(280, 44)
 	unit_box.add_child(_budget_label)
 	row.add_child(unit_box)
 
@@ -70,9 +70,10 @@ func _ready() -> void:
 	_action_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_action_row)
 
-	_end_turn.text = "End Turn  (Enter)"
+	_end_turn.text = "End Turn"
 	_end_turn.focus_mode = Control.FOCUS_NONE
-	_end_turn.custom_minimum_size = Vector2(160, 0)
+	_end_turn.tooltip_text = "Enter"
+	_end_turn.custom_minimum_size = Vector2(100, 0)
 	_end_turn.pressed.connect(func(): end_turn_pressed.emit())
 	row.add_child(_end_turn)
 
@@ -96,7 +97,7 @@ func set_actions(actions: Array[BattleAction]) -> void:
 		var b := Button.new()
 		b.text = "%d. %s" % [i + 1, action.button_text()]
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(170, 56)
+		b.custom_minimum_size = Vector2(0, 56)
 		b.pressed.connect(func(): action_pressed.emit(action))
 		_action_row.add_child(b)
 		_buttons[action] = b
@@ -113,15 +114,20 @@ func refresh(unit: Unit, is_player_phase: bool) -> void:
 		return
 
 	var b := unit.budget
-	_unit_label.text = unit.name
+	_unit_label.text = "%s   HP %d/%d   Armour %d" % [unit.name, unit.hp, unit.max_hp, unit.armour]
 	var move_text := "[color=#7fd3ff]Move ●[/color]" if b.can_move() else "[color=#666]Move ○[/color]"
 	var pips := ""
 	for i in TurnBudget.ACTIONS_PER_TURN:
 		pips += "●" if i < b.actions_left else "○"
-	_budget_label.text = "%s     [color=#ffd24d]Actions %s[/color]" % [move_text, pips]
+	var weapon_text := unit.weapon.ammo_text() if unit.weapon else "Unarmed"
+	if unit.aim_bonus > 0:
+		weapon_text += "  [color=#9f9]Aimed[/color]"
+	_budget_label.text = "%s   [color=#ffd24d]Actions %s[/color]\n%s" % [move_text, pips, weapon_text]
 
 	for action in _buttons:
 		var reason := b.why_not(action)
+		if reason == "":
+			reason = action.blocked_reason(unit)
 		_buttons[action].disabled = reason != ""
 		_buttons[action].tooltip_text = action.description + ("" if reason == "" else "\n\n" + reason)
 

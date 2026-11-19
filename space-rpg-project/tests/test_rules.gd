@@ -89,9 +89,10 @@ func test_character_skills() -> void:
 	c.attributes["STR"] = 50
 	c.skill_points["Firearms"] = 20
 	expect(c.get_skill("Firearms") == 55, "Firearms = DEX 70 / 2 + 20 points = 55")
-	expect(c.get_skill("Melee") == 25, "Melee = STR 50 / 2 = 25")
-	expect(c.get_skill("Melee", "DEX") == 35, "Finesse Melee uses DEX: 70 / 2 = 35")
-	expect(c.get_skill("Hacking") == 10, "Hacking uses its fixed base of 10")
+	expect(c.get_skill("Melee") == 35, "Melee uses the higher of STR/DEX: 70 / 2 = 35")
+	expect(c.get_skill("Melee", "STR") == 25, "attribute override forces STR: 50 / 2 = 25")
+	expect(c.get_skill("Hacking") == 8, "non-weapon skills start at attribute / 5: INT 40 / 5 = 8")
+	expect(c.max_hp() == 9, "HP = (CON 40 + STR 50) / 10 = 9")
 	c.skill_points["Firearms"] = 90
 	expect(c.get_skill("Firearms") == 100, "skills cap at 100")
 	var result := c.check_skill("Firearms")

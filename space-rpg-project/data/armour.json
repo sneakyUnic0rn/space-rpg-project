@@ -1,0 +1,10 @@
+{
+	"_readme": "From 'Fractured Frontier Armour & Gear (d100)'. value is subtracted from every hit.",
+	"None":               { "value": 0, "class": "None" },
+	"Void-Weave Jumpsuit":{ "value": 1, "class": "Light" },
+	"Padded Flight Suit": { "value": 2, "class": "Light" },
+	"Composite Vest":     { "value": 3, "class": "Medium" },
+	"Riot Armor":         { "value": 4, "class": "Medium", "str_req": 60 },
+	"Hardsuit":           { "value": 5, "class": "Heavy", "str_req": 60 },
+	"Powered Exosuit":    { "value": 6, "class": "Heavy", "str_req": 75 }
+}

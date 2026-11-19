@@ -71,7 +71,7 @@ func test_turn_flow() -> void:
 	var moved_again: bool = await scene.try_move_to(u.cell + Vector2i(0, 1))
 	expect(not moved_again, "second move in the same turn is refused")
 
-	var scan: BattleAction = scene.actions[0]
+	var scan: BattleAction = scene.actions.filter(func(a): return a.id == "quick_scan")[0]
 	expect(scene.perform_action(scan), "Quick Scan (by id) uses an action")
 	expect(not scene.perform_action(scan), "Quick Scan can't be repeated")
 	expect(u.budget.actions_left >= 0, "budget never negative")
