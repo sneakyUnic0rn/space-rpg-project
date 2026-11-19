@@ -1,0 +1,8 @@
+{
+	"_readme": "Skill definitions. 'attribute' is the governing attribute. 'base' is either 'half_attribute' (base = attribute / 2) or a fixed number. Only Firearms and Melee follow your design doc; the rest are PLACEHOLDERS to replace with your real skill list.",
+	"Firearms": { "attribute": "DEX", "base": "half_attribute" },
+	"Melee": { "attribute": "STR", "base": "half_attribute" },
+	"First Aid": { "attribute": "INT", "base": 20 },
+	"Hacking": { "attribute": "INT", "base": 10 },
+	"Perception": { "attribute": "WIS", "base": 25 }
+}
